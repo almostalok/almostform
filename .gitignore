@@ -1,0 +1,29 @@
+# dependencies
+/node_modules
+/.pnpm-store
+
+# next.js
+/.next/
+/out/
+
+# production & dev db
+/prisma/*.db
+/prisma/*.db-journal
+*.db
+*.db-journal
+/public/uploads/*
+!/public/uploads/.gitkeep
+
+# environment variables
+.env
+.env*.local
+
+# debug & logs
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# OS
+.DS_Store
+Thumbs.db

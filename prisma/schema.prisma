@@ -1,0 +1,175 @@
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+model User {
+  id               String            @id @default(uuid())
+  email            String            @unique
+  name             String
+  passwordHash     String
+  createdAt        DateTime          @default(now())
+  updatedAt        DateTime          @updatedAt
+  workspaces       Workspace[]       @relation("WorkspaceOwner")
+  workspaceMembers WorkspaceMember[]
+  reviewNotes      ReviewNote[]
+}
+
+model Workspace {
+  id        String            @id @default(uuid())
+  name      String
+  slug      String            @unique
+  ownerId   String
+  owner     User              @relation("WorkspaceOwner", fields: [ownerId], references: [id], onDelete: Cascade)
+  createdAt DateTime          @default(now())
+  updatedAt DateTime          @updatedAt
+  members   WorkspaceMember[]
+  forms     Form[]
+}
+
+model WorkspaceMember {
+  id          String    @id @default(uuid())
+  workspaceId String
+  workspace   Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  userId      String
+  user        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  role        String    @default("MEMBER")
+  createdAt   DateTime  @default(now())
+
+  @@unique([workspaceId, userId])
+}
+
+model Form {
+  id               String        @id @default(uuid())
+  workspaceId      String
+  workspace        Workspace     @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  title            String
+  description      String?
+  slug             String        @unique
+  type             String        @default("GENERAL")
+  status           String        @default("DRAFT")
+  currentVersionId String?
+  createdAt        DateTime      @default(now())
+  updatedAt        DateTime      @updatedAt
+  publishedAt      DateTime?
+  versions         FormVersion[]
+  responses        Response[]
+}
+
+model FormVersion {
+  id            String       @id @default(uuid())
+  formId        String
+  form          Form         @relation(fields: [formId], references: [id], onDelete: Cascade)
+  versionNumber Int
+  schemaJson    String
+  createdAt     DateTime     @default(now())
+  scenes        Scene[]
+  logicRules    LogicRule[]
+  responses     Response[]
+}
+
+model Scene {
+  id            String      @id @default(uuid())
+  formVersionId String
+  formVersion   FormVersion @relation(fields: [formVersionId], references: [id], onDelete: Cascade)
+  position      Int
+  type          String      @default("QUESTION")
+  title         String?
+  description   String?
+  settingsJson  String?
+  createdAt     DateTime    @default(now())
+  updatedAt     DateTime    @updatedAt
+  questions     Question[]
+  targetRules   LogicRule[] @relation("TargetScene")
+}
+
+model Question {
+  id                   String           @id @default(uuid())
+  sceneId              String
+  scene                Scene            @relation(fields: [sceneId], references: [id], onDelete: Cascade)
+  position             Int
+  type                 String
+  label                String
+  description          String?
+  required             Boolean          @default(false)
+  settingsJson         String?
+  validationJson       String?
+  evaluationConfigJson String?
+  createdAt            DateTime         @default(now())
+  updatedAt            DateTime         @updatedAt
+  options              QuestionOption[]
+  sourceRules          LogicRule[]      @relation("SourceQuestion")
+  responseAnswers      ResponseAnswer[]
+}
+
+model QuestionOption {
+  id         String   @id @default(uuid())
+  questionId String
+  question   Question @relation(fields: [questionId], references: [id], onDelete: Cascade)
+  label      String
+  value      String
+  position   Int
+}
+
+model LogicRule {
+  id               String      @id @default(uuid())
+  formVersionId    String
+  formVersion      FormVersion @relation(fields: [formVersionId], references: [id], onDelete: Cascade)
+  sourceQuestionId String
+  sourceQuestion   Question    @relation("SourceQuestion", fields: [sourceQuestionId], references: [id], onDelete: Cascade)
+  operator         String
+  comparisonValue  String
+  action           String
+  targetSceneId    String
+  targetScene      Scene       @relation("TargetScene", fields: [targetSceneId], references: [id], onDelete: Cascade)
+}
+
+model Response {
+  id              String           @id @default(uuid())
+  formId          String
+  form            Form             @relation(fields: [formId], references: [id], onDelete: Cascade)
+  formVersionId   String
+  formVersion     FormVersion      @relation(fields: [formVersionId], references: [id], onDelete: Cascade)
+  sessionId       String
+  status          String           @default("IN_PROGRESS")
+  submittedAt     DateTime?
+  createdAt       DateTime         @default(now())
+  updatedAt       DateTime         @updatedAt
+  totalScore      Float?
+  maxScore        Float?
+  normalizedScore Float?
+  candidateStatus String?          @default("NEW")
+  answers         ResponseAnswer[]
+  reviewNotes     ReviewNote[]
+}
+
+model ResponseAnswer {
+  id          String   @id @default(uuid())
+  responseId  String
+  response    Response @relation(fields: [responseId], references: [id], onDelete: Cascade)
+  questionId  String
+  question    Question @relation(fields: [questionId], references: [id], onDelete: Cascade)
+  valueJson   String
+  autoScore   Float?
+  maxMarks    Float?
+  manualScore Float?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@unique([responseId, questionId])
+}
+
+model ReviewNote {
+  id         String   @id @default(uuid())
+  responseId String
+  response   Response @relation(fields: [responseId], references: [id], onDelete: Cascade)
+  authorId   String
+  author     User     @relation(fields: [authorId], references: [id], onDelete: Cascade)
+  content    String
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+}
