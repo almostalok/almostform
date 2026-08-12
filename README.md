@@ -58,3 +58,5 @@ Full architectural and technical guides are available in the [`docs/`](./docs) d
 - [Form Engine & Logic](./docs/form-engine.md)
 - [Hiring Evaluation Engine](./docs/evaluation-engine.md)
 - [Development Guide](./docs/development-guide.md)
+
+by almostalok
